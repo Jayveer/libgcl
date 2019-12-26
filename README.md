@@ -1,0 +1,1 @@
+An attempt at reversing the libgcl library used in Metal Gear Solid 4. This code is expected to be compiled on Big Endian architecture as per the original.
