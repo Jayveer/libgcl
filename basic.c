@@ -6,7 +6,8 @@ void *GCL_Parse_if(char *top)
     return 0;
 }
 
-int command_if(char *top) {
+int command_if(char *top) 
+{
     //todo
 	return 0;
 }
@@ -25,13 +26,13 @@ int GCL_Command_eval(char *top)
 
 int GCL_Command_return(char *top) 
 {
-    //todo
-    return 0;
+	//todo
+	return 0;
 }
 
 int GCL_Command_print(char *top) 
 {
-    //todo	
+	//todo	
 	return 0;
 }
 

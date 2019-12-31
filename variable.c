@@ -1,9 +1,9 @@
 char gcl_variable_buf[68224];
 
-char *linkvarbuf 	= gcl_variable_buf;
-char *sv_linkvarbuf = gcl_variable_buf + 0x5B40;
-char *var_buf 		= gcl_variable_buf + 0xB680;
-char *sv_var_buf 	= gcl_variable_buf + 0xDE80;
+char *linkvarbuf	= gcl_variable_buf;
+char *sv_linkvarbuf	= gcl_variable_buf + 0x5B40;
+char *var_buf		= gcl_variable_buf + 0xB680;
+char *sv_var_buf	= gcl_variable_buf + 0xDE80;
 
 char local_var_buf[1024];
 

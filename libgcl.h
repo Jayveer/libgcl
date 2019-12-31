@@ -100,8 +100,9 @@ static inline unsigned int GCL_GetVarCode(char *ptr)
 
 static inline int GCL_Get3Bytes(char *ptr)
 {
-    //todo
-	unsigned char *p;
+    unsigned char *p; /* Line: 238 */
+	p = (unsigned char *)ptr;
+	return (signed long)(p[0] << 16) | (p[1] << 8) | (p[2] << 0); //original for ps3
 }
 
 static inline int GCL_GetShort(char *ptr)
@@ -125,26 +126,37 @@ static inline unsigned char GCL_GetByte(char *ptr)
 
 static inline int GCL_GetStrCode(char *ptr)
 {
-	//todo
-	unsigned char *p;
+	unsigned char *p; /* Line: 283 */
+	p = (unsigned char *)ptr;
+	return (unsigned long)(p[0] << 16) | (p[1] << 8) | (p[2] << 0);
 }
+
+//gcl_init.c
+void GCL_Initialize();
 
 //parse.c
 char *GCL_NextStr();
-void  GCL_ParseInit();
-void  GCL_ResetLocalVar();
+void GCL_ParseInit();
+void GCL_ResetLocalVar();
+void GCL_UnsetArgStack(void *stack);
+char *GCL_GetShortSize(char *top, int *size);
+char *GCL_GetBlockSize(char *top, int *size);
+void *GCL_SetArgStack(GCL_ARGS *args, int local_args_num);
 char *GCL_GetNextValue(char *top, int *type_p, int *value_p);
 
 
 //variable.c
-void GCL_InitVar();
-int  GCL_GetNextInt();
 extern char local_var_buf[1024];
+void GCL_SaveVar();
+void GCL_InitVar();
+int GCL_GetNextInt();
 
 //command.c
 void GCL_ResetCommList();
-int  GCL_LoadScript(char *datatop);
-int  GCL_AddCommMulti(GCL_COMMANDDEF *def);
+int GCL_LoadScript(char *datatop);
+int GCL_AddCommMulti(GCL_COMMANDDEF *def);
+void GCL_ExecScript();
+GCL_SCRIPT *get_script();
 
 //basic.c
 void GCL_InitBasicCommands();
