@@ -52,7 +52,7 @@ GCL_COMMANDLIST *FindCommand(int id)
 	GCL_COMMANDDEF *def; 
 	def = commdef;
 
-	while (def->next != 0) 
+	while (def != 0) 
 	{
 		GCL_COMMANDLIST *cl = def->commlist;
 		for (int i = 0; i < def->n_commlist; i++) 
@@ -68,22 +68,31 @@ GCL_COMMANDLIST *FindCommand(int id)
 
 int GCL_Command(char *ptr)
 {
-	//todo
-	int id; 
-	GCL_COMMANDLIST *cl;
-	int ret;
-	char *p; 
+	int id;
+	GCL_COMMANDLIST *cl; 
+	int ret; 
+	char *p;
 	char *next; 
 	int ofs; 
 
 	p = ptr;
 	id = GCL_GetStrCode(ptr);
+	p += 3;
+
 	cl = FindCommand(id);
 
-	p += 3;
+	
 	next = GCL_GetShortSize(p, &ret);
 
-	return 0;
+	p = next + ret;
+	GCL_SetCommandLine(p);
+	GCL_SetArgTop(next);
+
+	ofs = cl->func(next);
+	GCL_UnsetCommandLine();
+	
+
+	return ofs;
 }
 
 void GCL_SetProcSelectNo(int no) 
@@ -108,25 +117,27 @@ char *set_proc_table(char *proc_table, int *proc_num)
 
 char *get_proc_block(int id, int *local_arg_num)
 {
-	//todo
-	GCL_PROC_TABLE *pt;
+	GCL_SCRIPT *cur = get_script();
+	GCL_PROC_TABLE *pt = (GCL_PROC_TABLE*)cur->proc_table;
 	int offset;
 	char *res; 
 
-	pt = (GCL_PROC_TABLE*)get_script()->proc_table;
+	id = id & 0x7FFF;
+	id = id - 1;
 
-	int prev = id - 1;
-	offset = pt[prev].offset;
+	offset = pt[id].offset;
 
-	if (id & 16) 
+	if ((id & 0x8000) != 0) 
 	{
+		int prev = id;
 		while (offset != gcl_work.proc_select_no) 
 		{
 			prev++;
 			offset = pt[prev].offset;
 		}
 	}
-	*local_arg_num = offset & 4;
+
+	*local_arg_num = offset & 0x04;
 	return offset + get_script()->proc_body;
 }
 
@@ -152,8 +163,7 @@ int GCL_ExecProc(int proc_id, GCL_ARGS *arg)
 
 int GCL_Proc(char *p)
 {
-	//todo
-	int argbuf[16];
+	int argbuf[16]; 
 	int i = 0, id; 
 	GCL_ARGS arg; 
 
@@ -161,14 +171,11 @@ int GCL_Proc(char *p)
 	p += 2;
 	int type, value;
 	
-	do 
-	{ 
+	do { 
 		p = GCL_GetNextValue(p, &type, &value);
-		if (type != 0) 
-		{
-			argbuf[i] = value;
-			i++;
-		}
+		if (type == 0) continue;
+		argbuf[i] = value;
+		i++;
 	} while (type != 0);
 
 	arg.argc = i;
@@ -192,7 +199,8 @@ int my_rand()
 	return rand_seed;
 }
 
-void decode_buffer(unsigned int seed, void *buffer, unsigned int size) {
+void decode_buffer(unsigned int seed, void *buffer, unsigned int size) 
+{
 	unsigned char *p = (unsigned char*)buffer;
 	int i; 
 

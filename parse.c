@@ -50,30 +50,32 @@ char *GCL_GetShortSize(char *top, int *size)
 
 char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 {
-	//todo
-	int type, tag;
-	unsigned char *p; 
+	int type, tag; 
+	unsigned char *p = (unsigned char*)top; 
 
-	if (*top == 0xC0) 
+	tag = *p & 0xF0;
+
+	if (tag == 0) 
 	{
-		//todo
-		return 0;
-	}
+		type = *top;
+		*type_p = type;
+		char* next = top + 1;
 
-	if ((*top & 0xF0) == 0) 
-	{
-
-		*type_p = r8;
-		switch (*type_p) 
+		switch (type) 
 		{
 		case 0:
+			next = 0;
 			break;
 		case 1:
+			break;
+		case 6:
+			*value_p = GCL_GetStrCode(next);
+			p = (unsigned char *)next + 3;
 			break;
 		}
 	}
 
-	return 0;
+	return (char*)p;
 }
 
 void GCL_InitArgStack() 
@@ -115,8 +117,30 @@ void GCL_InitCommandLineBuffer()
 	gcl_work.commandline_p = gcl_work.commandlines;
 }
 
+void GCL_SetCommandLine(char *argtop)
+{
+	*gcl_work.commandline_p = argtop;
+	gcl_work.commandline_p += 4;
+}
+
+void GCL_UnsetCommandLine()
+{
+	gcl_work.commandline_p -= 4;
+}
+
 void GCL_SetArgTop(char *top) {
 	gcl_work.next_str_ptr = top;
+}
+
+int GCL_GetInt(char *ptr)
+{
+	int type, value; 
+	
+	if (ptr != 0)
+		ptr = GCL_GetNextValue(ptr, &type, &value);
+
+	gcl_work.next_str_ptr = ptr;
+	return value;
 }
 
 char *GCL_NextStr() {
@@ -131,6 +155,11 @@ char *GCL_NextStr() {
 		return 0;
 
 	return gcl_work.next_str_ptr;
+}
+
+int GCL_GetNextInt() {
+	char* p= GCL_NextStr();
+	return GCL_GetInt(p);
 }
 
 void GCL_ParseInit()
