@@ -55,22 +55,107 @@ char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 
 	tag = *p & 0xF0;
 
+	if (tag) {
+		int size;
+		char *next = top;
+		*type_p = tag;
+		switch (tag) 
+		{
+		case 0x10:
+			break;
+		case 0x20:
+			p = (unsigned char *)GCL_GetVar(next, type_p, value_p);
+			break;
+		case 0x30:
+			next = GCL_GetBlockSize(next, &size);
+			*value_p = GCL_Expr(next);
+			p = (unsigned char*)next + size;
+		case 0x40:
+			int temp = (*p & 0x0F);
+
+			if (temp == 0x0F) 
+			{
+				p++;
+				temp += *p;
+			}
+
+			*value_p = GCL_GetArgs(temp);
+			*type_p = 9;
+			p++;
+			break;
+		case 0x50:
+			next = GCL_GetBlockSize(next, &size);
+			*type_p = (*next << 16) | 0x50;
+			*value_p = (int)next + 4;
+			p = (unsigned char*)next + size;
+			break;
+		case 0x80:
+			next = GCL_GetBlockSize(next, &size);
+			*value_p = (int)next;
+			p = (unsigned char*)next + size;
+			break;
+		case 0x90:
+			*value_p = GCL_GetLocalArgs((*p &0x0F) << 2);
+			*type_p = 9;
+			p++;
+			break;
+		case 0xC0:
+			*type_p = 9;
+			*value_p = ((*p & 0x3F) << 8) - 1;
+			p++;
+			break;
+		}
+	}
+
 	if (tag == 0) 
 	{
 		type = *top;
 		*type_p = type;
 		char* next = top + 1;
+		int size;
 
 		switch (type) 
 		{
-		case 0:
-			next = 0;
+		case 0x0:
+			p = 0;
 			break;
-		case 1:
+		case 0x1:
+			*value_p = GCL_GetUShort(next);
+			p = (unsigned char *)next + 2;
 			break;
-		case 6:
+		case 0x2:
+		case 0x3:
+		case 0x4:
+			*value_p = GCL_GetByte(next);
+			p = (unsigned char *)next + 1;
+		case 0x6:
 			*value_p = GCL_GetStrCode(next);
 			p = (unsigned char *)next + 3;
+			break;
+		case 0x7:
+			size = GCL_GetByte(next);
+			next++;
+			*value_p = (int)next;
+			p = (unsigned char*)next + size;
+		case 0x8:
+			*value_p = GCL_GetShort(next);
+			p = (unsigned char *)next + 2;
+			break;
+		case 0x5:
+		case 0xB:
+		case 0xC:
+			break;
+		case 0x9:
+		case 0xA:
+		case 0xD:
+			*value_p = GCL_GetULong(next);
+			p = (unsigned char *)next + 4;
+			break;
+		case 0xE:
+			int temp = GCL_GetUShort(next);
+			p = (unsigned char *)next + 2;
+			*value_p = (temp & 0x16) ? (int)GCL_GetStringResource2(temp) : (int)GCL_GetStringResource(temp);
+			*type_p = 7;
 			break;
 		}
 	}
@@ -108,8 +193,13 @@ int GCL_GetArgs(int argno)
 	if (argno == 0)
 		return gcl_work.status;
 
+	GCL_ARGS args = *(GCL_ARGS*)(gcl_work.argstack_p - 1);
+	return args.argv[argno];
+}
 
-	return 0;
+int GCL_GetLocalArgs(int argno)
+{
+	return *(gcl_work.argstack_p - argno - 1);
 }
 
 void GCL_InitCommandLineBuffer() 
