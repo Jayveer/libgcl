@@ -17,13 +17,13 @@ int calc(int op, int value1, int value2)
 		value1 = !value1;
 		break;
 	case 0x04:
-		value1 += value2;
+		value1 = value1 + value2;
 		break;
 	case 0x05:
-		value1 -= value2;
+		value1 = value1 - value2;
 		break;
 	case 0x06:
-		value1 *= value2;
+		value1 = value1 * value2;
 		break;
 	case 0x07:
 		value1 = value2 / value1;
@@ -41,7 +41,7 @@ int calc(int op, int value1, int value2)
 		value1 = (value1 == value2);
 		break;
 	case 0x0C:
-        value1 = 1; //instructions in this case always come out to 1 so not sure yet
+		value1 = 1; //instructions in this case always come out to 1 so not sure yet
 		break;
 	case 0x0D:
 		value1 = value2 < value1;
@@ -53,22 +53,22 @@ int calc(int op, int value1, int value2)
 	case 0x10:
 		value1 = value2 >= value1;
 	case 0x11:
-		value1 |= value2;
+		value1 = value1 | value2;
 		break;
 	case 0x12:
-		value1 &= value2;
+		value1 = value1 & value2;
 		break;
 	case 0x13:
-		value1 ^= value2;
+		value1 = value1 ^ value2;
 		break;
 	case 0x14:
-		value1 |= value2;
+		value1 = value1 | value2;
 		value1 = value1 ? 1 : 0;
 	case 0x15:
 		if (value2 = 0) { value1 = 0; break; }
 		value1 = value1 != 0;
 		break;
-    }
+	}
 
 	return 0;
 }
@@ -80,7 +80,6 @@ typedef struct
 } EXPR_STACK;
 
 
-//todo
 int GCL_Expr(char *data)
 {
 	unsigned int type;
@@ -90,52 +89,42 @@ int GCL_Expr(char *data)
 
 	sp = expr_stack;
 
-	for(;;)
-    {
-        int val;
-        type = *p;
+	for (;;) {
+		int val;
+		type = *p;
 
-        if (type & 0xA0) { 
-            p = GCL_GetNextValue(p, (int*)&type, &val);
+		if ((type & 0xE0) != 0xA0) {
+			sp->ptr = p;
+			type &= 0xF0;
+			p = GCL_GetNextValue(p, (int*)&type, &val);
 
-            if (type == 0x80) {
-                sp->value = val;
-            } else {
-                GCL_ExecBlockBody((char *)val, 0, 0);
-                sp->value = gcl_work.status;
-            }
+			if (type == 0x80) {
+				GCL_ExecBlockBody((char *)&val, 0, 0);
+				sp->value = gcl_work.status;
+			} else {
+				sp->value = val;
+			}
+			sp++;
+			continue;
+		}
 
-            sp++;
-            continue;
-        }
+		unsigned int op = type & 0x1F;
+		sp--;
 
-        unsigned int op = type & 0x16; 
-        sp--;
+		if (!op)
+			return sp->value;
 
-        if (!op) 
-            break;
-        
-        if (op == 0x16) {
-            
-            sp--;
-            char temp2 = *sp->ptr;
-            if ((temp2 & 0xF0) == 0x90) {
-                GCL_SetLocalArgs(temp2 & 0xF0, sp->value);
-            }
-            else {
-                GCL_SetVar(sp->ptr, sp->value);
-            }
-        }
+		val = sp->value;
+		sp--;
 
-        
-        val = sp->value; //r10
-        sp--;
-        sp->value; //r8
-
-        sp->value = calc(op, val, sp->value);
-        sp->ptr = 0;
-        p++;
-    }
-
-	return sp->value;
+		if (op == 0x16) {
+			int no = *sp->ptr;
+			(no & 0xF0) == 0x90 ? GCL_SetLocalArgs((no & 0x0F), val) : GCL_SetVar(sp->ptr, val);
+			sp->value = val;
+		} else {
+			sp->value = calc(op, val, sp->value);
+			sp->ptr = 0;
+		}
+		p++;
+	}
 }
