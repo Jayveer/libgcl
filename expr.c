@@ -70,7 +70,7 @@ int calc(int op, int value1, int value2)
 		break;
 	}
 
-	return 0;
+	return value1;
 }
 
 typedef struct
@@ -89,11 +89,13 @@ int GCL_Expr(char *data)
 
 	sp = expr_stack;
 
-	for (;;) {
+	for (;;) 
+	{
 		int val;
 		type = *p;
 
-		if ((type & 0xE0) != 0xA0) {
+		if ((type & 0xE0) != 0xA0) 
+		{
 			sp->ptr = p;
 			type &= 0xF0;
 			p = GCL_GetNextValue(p, (int*)&type, &val);
@@ -117,9 +119,15 @@ int GCL_Expr(char *data)
 		val = sp->value;
 		sp--;
 
-		if (op == 0x16) {
+		if (op == 0x16) 
+		{
 			int no = *sp->ptr;
-			(no & 0xF0) == 0x90 ? GCL_SetLocalArgs((no & 0x0F), val) : GCL_SetVar(sp->ptr, val);
+			if ((no & 0xF0) == 0x90) 
+			{
+				GCL_SetLocalArgs((no & 0x0F), val);
+			}  else {
+				GCL_SetVar(sp->ptr, val);
+			}
 			sp->value = val;
 		} else {
 			sp->value = calc(op, val, sp->value);
