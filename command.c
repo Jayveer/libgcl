@@ -91,7 +91,6 @@ int GCL_Command(char *ptr)
 	ofs = cl->func(next);
 	GCL_UnsetCommandLine();
 	
-
 	return ofs;
 }
 
@@ -184,6 +183,12 @@ int GCL_Proc(char *p)
 	id = GCL_ExecProc(id, &arg);
 
 	return 0;
+}
+
+char *GCL_GetStringResource(int id) {
+	GCL_STRING_RESOURCE *cfr = get_string_resource();
+	int offset = cfr->resource_table[id];
+	return cfr->string_table + offset;
 }
 
 unsigned int rand_seed = 0x0C;
@@ -297,32 +302,39 @@ char *GCL_GetFontDataTop()
 
 int _GCL_ExecBlockBody(char *top)
 {
-	//todo
-	char *p;
+	
+	char *p = top;
 	char *next;
-	int size; 
+	int size;
+	int temp;
 
-	next = GCL_GetBlockSize(top, &size);
+	while (p != 0) {
 
-	//while size + next !=0 do the below
+		next = GCL_GetBlockSize(p, &size);
 
-	if ((top[0] & 0xF0) == 0x60) 
-	{
-		size = GCL_Command(next);
+		switch (*p & 0xF0) {
+		case 0:
+			return 0;
+		case 0x30:
+			GCL_Expr(next);
+			break;
+		case 0x60:
+			if (GCL_Command(next) == 1);
+				return 1;
+			break;
+		case 0x70:
+			GCL_Proc(next);
+		}
+
+		p = next + size;
+
 	}
 
-	if ((top[0] & 0xF0) == 0x70) 
-	{
-		size = GCL_Proc(next);
-	}
-
-	//END: 
 	return 0;
 }
 
 int GCL_ExecBlockBody(char *top, GCL_ARGS *args, int local_num)
 {
-	//todo
 	int res;
 	void *org_stack; 
 
@@ -335,6 +347,7 @@ int GCL_ExecBlockBody(char *top, GCL_ARGS *args, int local_num)
 	}
 
 	res = _GCL_ExecBlockBody(top);
+	gcl_work.status = res;
 
 	GCL_UnsetArgStack(org_stack);
 
@@ -343,7 +356,15 @@ int GCL_ExecBlockBody(char *top, GCL_ARGS *args, int local_num)
 
 int GCL_ExecBlock(char *top, GCL_ARGS *args)
 {
+	//if (sub_B0F80())
+		//return sub_BoF80();
+
 	return GCL_ExecBlockBody(top, args, 0);
+}
+
+int GCL_ExecProcBlock(char *top, GCL_ARGS *args, int local_num)
+{
+	return GCL_ExecBlockBody(top, args, local_num);
 }
 
 void GCL_ExecScript()

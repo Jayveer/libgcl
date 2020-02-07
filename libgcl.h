@@ -94,8 +94,9 @@ static inline unsigned int GCL_GetULong(char *ptr)
 
 static inline unsigned int GCL_GetVarCode(char *ptr)
 {
-	//todo
 	unsigned char *p;
+	p = (unsigned char *)ptr;
+	return (unsigned long)(p[0] << 24) | (p[1] << 16) | (p[2] << 8) | (p[3]);
 }
 
 static inline int GCL_Get3Bytes(char *ptr)
@@ -137,30 +138,43 @@ extern GCL_SCRIPT *get_script();
 //gcl_init.c
 void GCL_Initialize();
 
+//expr.c
+int GCL_Expr(char *data);
+
 //parse.c
 char *GCL_NextStr();
 void GCL_ParseInit();
 void GCL_ResetLocalVar();
+int GCL_GetArgs(int argno);
 void GCL_UnsetCommandLine();
 void GCL_SetArgTop(char *top);
+int GCL_GetLocalArgs(int argno);
 void GCL_UnsetArgStack(void *stack);
 void GCL_SetCommandLine(char *argtop);
+void GCL_SetLocalArgs(int argno, int value);
 char *GCL_GetShortSize(char *top, int *size);
 char *GCL_GetBlockSize(char *top, int *size);
 void *GCL_SetArgStack(GCL_ARGS *args, int local_args_num);
 char *GCL_GetNextValue(char *top, int *type_p, int *value_p);
 
+
 //variable.c
 extern char local_var_buf[1024];
+
 void GCL_SaveVar();
 void GCL_InitVar();
 int GCL_GetNextInt();
+char *GCL_SetVar(char *top, int value);
+char *GCL_GetVar(char *top, int *type_p, int *value_p);
 
 //command.c
 void GCL_ExecScript();
 void GCL_ResetCommList();
 int GCL_LoadScript(char *datatop);
+char *GCL_GetStringResource(int id);
+char *GCL_GetStringResource2(int id);
 int GCL_AddCommMulti(GCL_COMMANDDEF *def);
+int GCL_ExecBlockBody(char *top, GCL_ARGS *args, int local_num);
 int GCL_ExecProcBlock(char *top, GCL_ARGS *args, int local_num);
 
 

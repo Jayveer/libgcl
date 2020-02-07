@@ -55,7 +55,8 @@ char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 
 	tag = *p & 0xF0;
 
-	if (tag) {
+	if (tag) 
+	{
 		int size;
 		char *next = top;
 		*type_p = tag;
@@ -70,6 +71,7 @@ char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 			next = GCL_GetBlockSize(next, &size);
 			*value_p = GCL_Expr(next);
 			p = (unsigned char*)next + size;
+			break;
 		case 0x40:
 			int temp = (*p & 0x0F);
 
@@ -128,6 +130,7 @@ char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 		case 0x4:
 			*value_p = GCL_GetByte(next);
 			p = (unsigned char *)next + 1;
+			break;
 		case 0x6:
 			*value_p = GCL_GetStrCode(next);
 			p = (unsigned char *)next + 3;
@@ -137,13 +140,10 @@ char *GCL_GetNextValue(char *top, int *type_p, int *value_p)
 			next++;
 			*value_p = (int)next;
 			p = (unsigned char*)next + size;
+			break;
 		case 0x8:
 			*value_p = GCL_GetShort(next);
 			p = (unsigned char *)next + 2;
-			break;
-		case 0x5:
-		case 0xB:
-		case 0xC:
 			break;
 		case 0x9:
 		case 0xA:
@@ -202,6 +202,10 @@ int GCL_GetLocalArgs(int argno)
 	return *(gcl_work.argstack_p - argno - 1);
 }
 
+void GCL_SetLocalArgs(int argno, int value) {
+	gcl_work.argstack_p[argno] = value;
+}
+
 void GCL_InitCommandLineBuffer() 
 {
 	gcl_work.commandline_p = gcl_work.commandlines;
@@ -220,6 +224,33 @@ void GCL_UnsetCommandLine()
 
 void GCL_SetArgTop(char *top) {
 	gcl_work.next_str_ptr = top;
+}
+
+char *GCL_GetOptionCode(int strcode)
+{
+	char *p = *(gcl_work.commandline_p - 4);
+
+	for(;;) 
+	{
+		int type, value;
+		GCL_GetNextValue(p, &type, &value);
+
+		if (type == 0)
+			return 0;
+
+		if ((type & 0xF0) == 0x50) 
+		{
+			int optcode = value - 3;
+			optcode = GCL_Get3Bytes((char*)optcode);
+			if (strcode == optcode) 
+			{
+				gcl_work.next_str_ptr = (char*)value;
+				break;
+			}
+		}
+	}
+	
+	return gcl_work.next_str_ptr;
 }
 
 int GCL_GetInt(char *ptr)
@@ -248,8 +279,7 @@ char *GCL_NextStr() {
 }
 
 int GCL_GetNextInt() {
-	char* p= GCL_NextStr();
-	return GCL_GetInt(p);
+	return GCL_GetInt(GCL_NextStr());
 }
 
 void GCL_ParseInit()
